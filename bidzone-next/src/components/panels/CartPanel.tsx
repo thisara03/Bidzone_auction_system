@@ -53,16 +53,22 @@ export function CartPanel({ open, onClose }: Props) {
       <button type="button" className="cart-panel__backdrop" aria-label={t('notif.close')} onClick={onClose} />
       <div className="cart-panel__sheet">
         <header className="cart-panel__header">
-          <ShoppingCart size={22} className="cart-panel__header-icon" aria-hidden />
+          <div className="cart-panel__header-icon-wrap" aria-hidden>
+            <ShoppingCart size={18} />
+          </div>
           <h2 id="cart-panel-title" className="cart-panel__title">{t('cart.panelTitle')}</h2>
           <button type="button" className="cart-panel__close" onClick={onClose} aria-label={t('notif.close')}>
-            <X size={22} />
+            <X size={18} />
           </button>
         </header>
         <div className="cart-panel__body">
           {rows.length === 0 ? (
             <div className="cart-panel__empty">
-              <ShoppingCart size={72} strokeWidth={1} className="cart-panel__empty-icon" aria-hidden />
+              <div className="cart-panel__empty-glow">
+                <div className="cart-panel__empty-glow-icon">
+                  <ShoppingCart size={32} strokeWidth={1.25} className="cart-panel__empty-icon" aria-hidden />
+                </div>
+              </div>
               <p className="cart-panel__empty-title">{t('cart.emptyTitle')}</p>
               <p className="cart-panel__empty-sub">{t('cart.emptySub')}</p>
             </div>

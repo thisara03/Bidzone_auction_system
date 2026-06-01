@@ -41,16 +41,22 @@ export function WishlistPanel({ open, onClose }: Props) {
       <button type="button" className="wish-panel__backdrop" aria-label={t('notif.close')} onClick={onClose} />
       <div className="wish-panel__sheet">
         <header className="wish-panel__header">
-          <Heart size={22} className="wish-panel__header-icon" aria-hidden fill="currentColor" />
+          <div className="wish-panel__header-icon-wrap" aria-hidden>
+            <Heart size={18} fill="currentColor" />
+          </div>
           <h2 id="wish-panel-title" className="wish-panel__title">{t('wishlist.panelTitle')}</h2>
           <button type="button" className="wish-panel__close" onClick={onClose} aria-label={t('notif.close')}>
-            <X size={22} />
+            <X size={18} />
           </button>
         </header>
         <div className="wish-panel__body">
           {items.length === 0 ? (
             <div className="wish-panel__empty">
-              <Heart size={72} strokeWidth={1} className="wish-panel__empty-icon" aria-hidden />
+              <div className="wish-panel__empty-glow">
+                <div className="wish-panel__empty-glow-icon">
+                  <Heart size={32} strokeWidth={1.25} className="wish-panel__empty-icon" aria-hidden />
+                </div>
+              </div>
               <p className="wish-panel__empty-title">{t('wishlist.emptyTitle')}</p>
               <p className="wish-panel__empty-sub">{t('wishlist.emptySub')}</p>
             </div>

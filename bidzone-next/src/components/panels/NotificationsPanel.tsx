@@ -63,7 +63,9 @@ export function NotificationsPanel({ open, onClose }: Props) {
       <button type="button" className="notif-panel__backdrop" aria-label={t('notif.close')} onClick={onClose} />
       <div className="notif-panel__sheet">
         <header className="notif-panel__header">
-          <Bell size={22} className="notif-panel__header-icon" aria-hidden />
+          <div className="notif-panel__header-icon-wrap" aria-hidden>
+            <Bell size={18} />
+          </div>
           <h2 id="notif-panel-title" className="notif-panel__title">
             {t('notif.panelTitle')}
             {unreadCount > 0 && (
@@ -73,7 +75,7 @@ export function NotificationsPanel({ open, onClose }: Props) {
             )}
           </h2>
           <button type="button" className="notif-panel__close" onClick={onClose} aria-label={t('notif.close')}>
-            <X size={22} />
+            <X size={18} />
           </button>
         </header>
         <div className="notif-panel__toolbar">
