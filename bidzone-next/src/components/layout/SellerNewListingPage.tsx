@@ -170,8 +170,8 @@ export function SellerNewListingPage() {
       auctionCreatedAt: createdAt,
     }
 
-    if (isEdit) updateListing(item)
-    else addListing(item)
+    if (isEdit) await updateListing(item)
+    else await addListing(item)
     router.push(`/listing/${listingId}`)
   }
 

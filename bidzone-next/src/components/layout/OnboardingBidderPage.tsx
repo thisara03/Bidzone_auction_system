@@ -26,10 +26,10 @@ export function OnboardingBidderPage() {
 
   if (isAuthenticated) return null
 
-  function onSubmit(e: React.FormEvent) {
+  async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
-    const r = registerBidder({ fullName, email, password, address, city })
+    const r = await registerBidder({ fullName, email, password, address, city })
     if (r === 'email_taken') {
       setError(t('onboard.errEmailTaken'))
       return

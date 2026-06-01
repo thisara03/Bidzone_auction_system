@@ -8,28 +8,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-
-const STORAGE_KEY = 'bidzone-cart-ids'
-
-function loadIds(): string[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return []
-    const parsed = JSON.parse(raw) as unknown
-    if (!Array.isArray(parsed)) return []
-    return parsed.filter((x): x is string => typeof x === 'string')
-  } catch {
-    return []
-  }
-}
-
-function saveIds(ids: string[]) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(ids))
-  } catch {
-    /* ignore */
-  }
-}
+import { api, getToken } from '@/lib/apiClient'
 
 type CartContextValue = {
   ids: string[]
@@ -46,7 +25,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [ids, setIds] = useState<string[]>([])
 
   useEffect(() => {
-    setIds(loadIds())
+    const token = getToken()
+    if (!token) return
+    api
+      .get<{ ids: string[] }>('/cart')
+      .then(({ ids: loaded }) => setIds(loaded))
+      .catch(() => {/* silent */})
   }, [])
 
   const has = useCallback((id: string) => ids.includes(id), [ids])
@@ -54,34 +38,32 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const add = useCallback((id: string) => {
     setIds((prev) => {
       if (prev.includes(id)) return prev
-      const next = [...prev, id]
-      saveIds(next)
-      return next
+      return [...prev, id]
     })
+    api
+      .post<{ ids: string[] }>('/cart', { auctionId: id })
+      .then(({ ids: updated }) => setIds(updated))
+      .catch(() => {/* optimistic update stays */})
   }, [])
 
   const remove = useCallback((id: string) => {
-    setIds((prev) => {
-      const next = prev.filter((x) => x !== id)
-      saveIds(next)
-      return next
-    })
+    setIds((prev) => prev.filter((x) => x !== id))
+    api
+      .delete<{ ids: string[] }>('/cart', { auctionId: id })
+      .then(({ ids: updated }) => setIds(updated))
+      .catch(() => {/* optimistic update stays */})
   }, [])
 
   const clear = useCallback(() => {
     setIds([])
-    saveIds([])
+    api
+      .delete<{ ids: string[] }>('/cart', { clear: true })
+      .then(({ ids: updated }) => setIds(updated))
+      .catch(() => {/* optimistic update stays */})
   }, [])
 
   const value = useMemo(
-    () => ({
-      ids,
-      count: ids.length,
-      has,
-      add,
-      remove,
-      clear,
-    }),
+    () => ({ ids, count: ids.length, has, add, remove, clear }),
     [ids, has, add, remove, clear],
   )
 

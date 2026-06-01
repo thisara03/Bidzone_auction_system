@@ -50,10 +50,10 @@ export function LoginPage() {
   const { openHelp } = useHelp()
   const router = useRouter()
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setAuthError(null)
-    const r = login(email, password)
+    const r = await login(email, password)
     if (r === 'invalid') {
       setAuthError(t('login.errInvalid'))
       return

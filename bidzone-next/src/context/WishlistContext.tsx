@@ -8,28 +8,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-
-const STORAGE_KEY = 'bidzone-wishlist-ids'
-
-function loadIds(): string[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return []
-    const parsed = JSON.parse(raw) as unknown
-    if (!Array.isArray(parsed)) return []
-    return parsed.filter((x): x is string => typeof x === 'string')
-  } catch {
-    return []
-  }
-}
-
-function saveIds(ids: string[]) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(ids))
-  } catch {
-    /* ignore */
-  }
-}
+import { api, getToken } from '@/lib/apiClient'
 
 type WishlistContextValue = {
   ids: string[]
@@ -45,35 +24,36 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
   const [ids, setIds] = useState<string[]>([])
 
   useEffect(() => {
-    setIds(loadIds())
+    const token = getToken()
+    if (!token) return
+    api
+      .get<{ ids: string[] }>('/wishlist')
+      .then(({ ids: loaded }) => setIds(loaded))
+      .catch(() => {/* silent */})
   }, [])
 
   const has = useCallback((id: string) => ids.includes(id), [ids])
 
   const toggle = useCallback((id: string) => {
-    setIds((prev) => {
-      const next = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-      saveIds(next)
-      return next
-    })
+    setIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    )
+    api
+      .post<{ ids: string[] }>('/wishlist', { auctionId: id })
+      .then(({ ids: updated }) => setIds(updated))
+      .catch(() => {/* optimistic update stays */})
   }, [])
 
   const remove = useCallback((id: string) => {
-    setIds((prev) => {
-      const next = prev.filter((x) => x !== id)
-      saveIds(next)
-      return next
-    })
+    setIds((prev) => prev.filter((x) => x !== id))
+    api
+      .delete<{ ids: string[] }>('/wishlist', { auctionId: id })
+      .then(({ ids: updated }) => setIds(updated))
+      .catch(() => {/* optimistic update stays */})
   }, [])
 
   const value = useMemo(
-    () => ({
-      ids,
-      count: ids.length,
-      has,
-      toggle,
-      remove,
-    }),
+    () => ({ ids, count: ids.length, has, toggle, remove }),
     [ids, has, toggle, remove],
   )
 

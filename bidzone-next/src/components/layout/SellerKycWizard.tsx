@@ -67,9 +67,9 @@ export function SellerKycWizard(props: Props) {
     if (!nicDataUrl || amlRunning) return
     setAmlRunning(true)
     setStep('aml')
-    window.setTimeout(() => {
+    window.setTimeout(async () => {
       if (props.mode === 'new') {
-        const r = registerNewVerifiedSeller({
+        const r = await registerNewVerifiedSeller({
           fullName, email, password, address, city, phone, nicImageDataUrl: nicDataUrl,
         })
         if (r === 'email_taken') {
@@ -79,7 +79,7 @@ export function SellerKycWizard(props: Props) {
           return
         }
       } else {
-        upgradeCurrentUserToSeller({ phone, nicImageDataUrl: nicDataUrl })
+        await upgradeCurrentUserToSeller({ phone, nicImageDataUrl: nicDataUrl })
       }
       setStep('done')
     }, 2400)

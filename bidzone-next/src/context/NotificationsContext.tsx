@@ -8,6 +8,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
+import { api, getToken } from '@/lib/apiClient'
 
 export type NotificationKind = 'outbid' | 'bid_placed' | 'won' | 'payment' | 'lot_broadcast'
 
@@ -22,55 +23,6 @@ export type NotificationItem = {
     rawItem?: string
     paymentTotal?: number
   }
-}
-
-const STORAGE_KEY = 'bidzone-notifications'
-
-function loadNotifications(): NotificationItem[] | undefined {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (raw === null) return undefined
-    const parsed = JSON.parse(raw) as unknown
-    if (!Array.isArray(parsed)) return undefined
-    return parsed.filter((x) => x && typeof (x as NotificationItem).id === 'string') as NotificationItem[]
-  } catch {
-    return undefined
-  }
-}
-
-function saveNotifications(items: NotificationItem[]) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(items))
-  } catch {
-    /* ignore */
-  }
-}
-
-function seedNotifications(): NotificationItem[] {
-  const now = Date.now()
-  return [
-    {
-      id: 'seed-outbid',
-      kind: 'outbid',
-      read: false,
-      createdAt: now - 15 * 60 * 1000,
-      meta: { itemKey: 'notif.demoItemRolex' },
-    },
-    {
-      id: 'seed-bid',
-      kind: 'bid_placed',
-      read: false,
-      createdAt: now - 30 * 60 * 1000,
-      meta: { bidAmount: 2800 },
-    },
-    {
-      id: 'seed-won',
-      kind: 'won',
-      read: true,
-      createdAt: now - 120 * 60 * 1000,
-      meta: { itemKey: 'notif.demoItemSunglasses' },
-    },
-  ]
 }
 
 type NotificationsContextValue = {
@@ -89,75 +41,71 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<NotificationItem[]>([])
 
   useEffect(() => {
-    const loaded = loadNotifications()
-    if (loaded !== undefined) {
-      setItems(loaded)
-    } else {
-      const seed = seedNotifications()
-      saveNotifications(seed)
-      setItems(seed)
-    }
+    const token = getToken()
+    if (!token) return
+    api
+      .get<{ notifications: NotificationItem[] }>('/notifications')
+      .then(({ notifications }) => setItems(notifications))
+      .catch(() => {/* silent */})
   }, [])
 
   const unreadCount = useMemo(() => items.filter((n) => !n.read).length, [items])
 
   const clearAll = useCallback(() => {
     setItems([])
-    saveNotifications([])
+    api.delete('/notifications').catch(() => {/* silent */})
   }, [])
 
   const markRead = useCallback((id: string) => {
-    setItems((prev) => {
-      const next = prev.map((n) => (n.id === id ? { ...n, read: true } : n))
-      saveNotifications(next)
-      return next
-    })
+    setItems((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)))
+    api.patch(`/notifications/${id}`, { read: true }).catch(() => {/* silent */})
   }, [])
 
-  const addBidPlaced = useCallback((amount: number, itemTitle: string) => {
-    setItems((prev) => {
-      const n: NotificationItem = {
-        id: `push-${crypto.randomUUID()}`,
-        kind: 'bid_placed',
+  const pushNotification = useCallback(
+    (kind: NotificationKind, meta: NotificationItem['meta']): NotificationItem => {
+      const optimistic: NotificationItem = {
+        id: `opt-${crypto.randomUUID()}`,
+        kind,
         read: false,
         createdAt: Date.now(),
-        meta: { bidAmount: amount, rawItem: itemTitle },
+        meta,
       }
-      const next = [n, ...prev]
-      saveNotifications(next)
-      return next
-    })
-  }, [])
+      setItems((prev) => [optimistic, ...prev])
 
-  const addLotBroadcast = useCallback((itemTitle: string, amount: number) => {
-    setItems((prev) => {
-      const n: NotificationItem = {
-        id: `bc-${crypto.randomUUID()}`,
-        kind: 'lot_broadcast',
-        read: false,
-        createdAt: Date.now(),
-        meta: { rawItem: itemTitle, bidAmount: amount },
-      }
-      const next = [n, ...prev]
-      saveNotifications(next)
-      return next
-    })
-  }, [])
+      api
+        .post<{ notification: NotificationItem }>('/notifications', { kind, meta })
+        .then(({ notification }) => {
+          setItems((prev) =>
+            prev.map((n) => (n.id === optimistic.id ? notification : n)),
+          )
+        })
+        .catch(() => {/* keep optimistic */})
 
-  const addPaymentSuccess = useCallback((totalUsd: number) => {
-    setItems((prev) => {
-      const n: NotificationItem = {
-        id: `pay-${crypto.randomUUID()}`,
-        kind: 'payment',
-        read: false,
-        createdAt: Date.now(),
-        meta: { paymentTotal: totalUsd },
-      }
-      const next = [n, ...prev]
-      saveNotifications(next)
-      return next
-    })
-  }, [])
+      return optimistic
+    },
+    [],
+  )
+
+  const addBidPlaced = useCallback(
+    (amount: number, itemTitle: string) => {
+      pushNotification('bid_placed', { bidAmount: amount, rawItem: itemTitle })
+    },
+    [pushNotification],
+  )
+
+  const addLotBroadcast = useCallback(
+    (itemTitle: string, amount: number) => {
+      pushNotification('lot_broadcast', { rawItem: itemTitle, bidAmount: amount })
+    },
+    [pushNotification],
+  )
+
+  const addPaymentSuccess = useCallback(
+    (totalUsd: number) => {
+      pushNotification('payment', { paymentTotal: totalUsd })
+    },
+    [pushNotification],
+  )
 
   const value = useMemo(
     () => ({

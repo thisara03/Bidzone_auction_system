@@ -98,13 +98,13 @@ export function ProductDetailPage() {
     } catch { /* ignore */ }
   }, [detail])
 
-  const handlePlaceBid = useCallback(() => {
+  const handlePlaceBid = useCallback(async () => {
     if (!detail) return
     if (!Number.isFinite(bidAmount) || bidAmount < minBid) {
       window.alert(t('product.bidRejected'))
       return
     }
-    const ok = placeBid({
+    const ok = await placeBid({
       auctionId: detail.id,
       amount: bidAmount,
       minBid,
