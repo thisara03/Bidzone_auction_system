@@ -133,9 +133,9 @@ export function LoginPage() {
 
             <h2 className="lp__card-title">Welcome back</h2>
             <p className="lp__card-sub">
-              {t('login.newHere')}{' '}
-              <Link href="/onboarding" className="lp__card-link">
-                {t('login.startOnboarding')}
+              New to BidZone?{' '}
+              <Link href="/register" className="lp__card-link">
+                Create a free account
               </Link>
             </p>
 

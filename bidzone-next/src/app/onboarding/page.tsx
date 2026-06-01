@@ -1,6 +1,5 @@
-'use client'
-import { OnboardingRolePage } from '@/components/layout/OnboardingRolePage'
+import { redirect } from 'next/navigation'
 
 export default function OnboardingPage() {
-  return <OnboardingRolePage />
+  redirect('/register')
 }

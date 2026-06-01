@@ -1,6 +1,5 @@
-'use client'
-import { OnboardingBidderPage } from '@/components/layout/OnboardingBidderPage'
+import { redirect } from 'next/navigation'
 
 export default function OnboardingBidderRoute() {
-  return <OnboardingBidderPage />
+  redirect('/register')
 }

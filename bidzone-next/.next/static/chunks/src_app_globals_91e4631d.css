@@ -397,6 +397,11 @@
   .lowercase {
     text-transform: lowercase;
   }
+
+  .underline {
+    -webkit-text-decoration-line: underline;
+    text-decoration-line: underline;
+  }
 }
 
 :root {
