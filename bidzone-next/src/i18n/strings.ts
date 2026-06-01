@@ -96,6 +96,9 @@ export const STRINGS: Record<Locale, Record<string, string>> = {
     'login.startOnboarding': 'Create an account',
     'login.errInvalid':
       'Email or password does not match our records. Create an account if you are new.',
+    'login.errGoogle': 'Google sign-in failed. Please try again.',
+    'login.googleNotConfigured':
+      'Google sign-in is not configured. Set NEXT_PUBLIC_GOOGLE_CLIENT_ID in .env.local.',
     'header.becomeSeller': 'Sell on BidZone',
     'onboard.roleTitle': 'How will you use BidZone?',
     'onboard.roleSub': 'Choose bidder registration or seller sign-up with phone and ID checks.',
@@ -460,6 +463,9 @@ export const STRINGS: Record<Locale, Record<string, string>> = {
     'login.startOnboarding': 'ගිණුමක් සාදන්න',
     'login.errInvalid':
       'විද්‍යුත් තැපෑල හෝ මුරපදය නොගැලපේ. නව පරිශීලකයෙක් නම් ලියාපදිංචි වන්න.',
+    'login.errGoogle': 'Google ඇතුළු වීම අසාර්ථක විය. නැවත උත්සාහ කරන්න.',
+    'login.googleNotConfigured':
+      'Google ඇතුළු වීම සකසා නැත. .env.local හි NEXT_PUBLIC_GOOGLE_CLIENT_ID එක් කරන්න.',
     'header.becomeSeller': 'BidZone හි විකිණීම',
     'onboard.roleTitle': 'BidZone භාවිතා කරන්නේ කෙසේද?',
     'onboard.roleSub': 'ලංසුකරු ලියාපදිංචිය හෝ දුරකථන හා හැඳුනුම්පත් පරීක්ෂණ සහිත විකුණුම්කරු ලියාපදිංචිය තෝරන්න.',
@@ -824,6 +830,9 @@ export const STRINGS: Record<Locale, Record<string, string>> = {
     'login.startOnboarding': 'கணக்கை உருவாக்கு',
     'login.errInvalid':
       'மின்னஞ்சல் அல்லது கடவுச்சொல் பொருந்தவில்லை. புதியவரானால் கணக்கை உருவாக்கவும்.',
+    'login.errGoogle': 'Google உள்நுழைவு தோல்வியடைந்தது. மீண்டும் முயற்சிக்கவும்.',
+    'login.googleNotConfigured':
+      'Google உள்நுழைவு அமைக்கப்படவில்லை. .env.local இல் NEXT_PUBLIC_GOOGLE_CLIENT_ID அமைக்கவும்.',
     'header.becomeSeller': 'BidZone இல் விற்க',
     'onboard.roleTitle': 'BidZone ஐ எப்படி பயன்படுத்துவீர்கள்?',
     'onboard.roleSub': 'ஏல வாங்குபவர் பதிவு அல்லது தொலைபேசி மற்றும் அடையாளச் சரிபார்ப்புடன் விற்பனையாளர் பதிவைத் தேர்ந்தெடுக்கவும்.',

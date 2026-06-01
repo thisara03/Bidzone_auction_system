@@ -1,5 +1,7 @@
 'use client'
+
 import type { ReactNode } from 'react'
+import { GoogleAuthShell } from '@/components/auth/GoogleAuthShell'
 import { I18nProvider } from '@/context/I18nContext'
 import { AuthProvider } from '@/context/AuthContext'
 import { HelpProvider } from '@/context/HelpContext'
@@ -11,22 +13,22 @@ import { SavedCardsProvider } from '@/context/SavedCardsContext'
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
-    <I18nProvider>
-      <AuthProvider>
-        <NotificationsProvider>
-          <ListingsProvider>
-            <CartProvider>
-              <WishlistProvider>
-                <SavedCardsProvider>
-                  <HelpProvider>
-                    {children}
-                  </HelpProvider>
-                </SavedCardsProvider>
-              </WishlistProvider>
-            </CartProvider>
-          </ListingsProvider>
-        </NotificationsProvider>
-      </AuthProvider>
-    </I18nProvider>
+    <GoogleAuthShell>
+      <I18nProvider>
+        <AuthProvider>
+          <NotificationsProvider>
+            <ListingsProvider>
+              <CartProvider>
+                <WishlistProvider>
+                  <SavedCardsProvider>
+                    <HelpProvider>{children}</HelpProvider>
+                  </SavedCardsProvider>
+                </WishlistProvider>
+              </CartProvider>
+            </ListingsProvider>
+          </NotificationsProvider>
+        </AuthProvider>
+      </I18nProvider>
+    </GoogleAuthShell>
   )
 }

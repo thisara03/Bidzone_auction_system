@@ -18,6 +18,7 @@ import {
   setSessionUserId,
   updateUser,
 } from '@/lib/userRegistry'
+import { parseGoogleIdToken } from '@/lib/googleAuth'
 import {
   createBidderProfile,
   createSellerProfileAfterKyc,
@@ -48,6 +49,8 @@ type AuthContextValue = {
   isAuthenticated: boolean
   canAccessSellerTools: boolean
   login: (email: string, password: string) => 'ok' | 'invalid'
+  loginWithGoogle: (idTokenCredential: string) => 'ok' | 'invalid'
+  loginWithGoogleProfile: (profile: { email: string; name?: string }) => 'ok' | 'invalid'
   logout: () => void
   registerBidder: (input: BidderRegisterInput) => 'ok' | 'email_taken'
   registerNewVerifiedSeller: (input: SellerRegisterInput) => 'ok' | 'email_taken'
@@ -87,6 +90,67 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback((email: string, password: string) => {
     const found = findUserByEmail(email)
     if (!found || found.password !== password) return 'invalid'
+    setSessionUserId(found.id)
+    setUser(found)
+    clearLegacyAuthFlag()
+    return 'ok'
+  }, [])
+
+  const loginWithGoogle = useCallback((idTokenCredential: string) => {
+    const payload = parseGoogleIdToken(idTokenCredential)
+    if (!payload?.email) return 'invalid'
+
+    const email = payload.email.trim().toLowerCase()
+    let found = findUserByEmail(email)
+
+    if (!found) {
+      const profile = createBidderProfile({
+        fullName: payload.name?.trim() || email.split('@')[0] || 'Bidder',
+        email,
+        password: `google-oauth:${payload.sub ?? crypto.randomUUID()}`,
+        address: '',
+        city: '',
+      })
+      const r = addUser(profile)
+      if (r === 'email_taken') {
+        found = findUserByEmail(email)
+        if (!found) return 'invalid'
+      } else {
+        setSessionUserId(profile.id)
+        setUser(profile)
+        clearLegacyAuthFlag()
+        return 'ok'
+      }
+    }
+
+    setSessionUserId(found.id)
+    setUser(found)
+    clearLegacyAuthFlag()
+    return 'ok'
+  }, [])
+
+  const loginWithGoogleProfile = useCallback((profile: { email: string; name?: string }) => {
+    const email = profile.email.trim().toLowerCase()
+    let found = findUserByEmail(email)
+    if (!found) {
+      const newProfile = createBidderProfile({
+        fullName: profile.name?.trim() || email.split('@')[0] || 'Bidder',
+        email,
+        password: `google-oauth:${crypto.randomUUID()}`,
+        address: '',
+        city: '',
+      })
+      const r = addUser(newProfile)
+      if (r === 'email_taken') {
+        found = findUserByEmail(email)
+        if (!found) return 'invalid'
+      } else {
+        setSessionUserId(newProfile.id)
+        setUser(newProfile)
+        clearLegacyAuthFlag()
+        return 'ok'
+      }
+    }
     setSessionUserId(found.id)
     setUser(found)
     clearLegacyAuthFlag()
@@ -143,6 +207,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAuthenticated,
       canAccessSellerTools,
       login,
+      loginWithGoogle,
+      loginWithGoogleProfile,
       logout,
       registerBidder,
       registerNewVerifiedSeller,
@@ -153,6 +219,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAuthenticated,
       canAccessSellerTools,
       login,
+      loginWithGoogle,
+      loginWithGoogleProfile,
       logout,
       registerBidder,
       registerNewVerifiedSeller,
