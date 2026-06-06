@@ -1,5 +1,5 @@
 'use client'
-import { useEffect } from 'react'
+import { Suspense, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
 import { SellerDashboardPage } from '@/components/layout/SellerDashboardPage'
@@ -18,5 +18,9 @@ export default function DashboardRoute() {
 
   if (!isAuthenticated || !canAccessSellerTools) return null
 
-  return <SellerDashboardPage />
+  return (
+    <Suspense fallback={null}>
+      <SellerDashboardPage />
+    </Suspense>
+  )
 }

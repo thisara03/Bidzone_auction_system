@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import {
   LayoutDashboard, HelpCircle, LogOut, PlusCircle,
   ShieldCheck, Store, User, BarChart3, Settings,
+  Shield,
 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { useHelp } from '@/context/HelpContext'
@@ -32,7 +33,7 @@ function initials(name: string) {
 }
 
 export function ProfileMenu({ onClose }: Props) {
-  const { user, logout, canAccessSellerTools } = useAuth()
+  const { user, logout, canAccessSellerTools, isAdmin } = useAuth()
   const { openHelp } = useHelp()
   const router = useRouter()
 
@@ -41,6 +42,7 @@ export function ProfileMenu({ onClose }: Props) {
   const grad  = avatarGradient(user.fullName)
   const init  = initials(user.fullName)
   const isSeller = user.role === 'seller'
+  const isAdminUser = user.role === 'admin'
 
   function handleSignOut() {
     onClose()
@@ -71,8 +73,10 @@ export function ProfileMenu({ onClose }: Props) {
         <div className="pm__info">
           <span className="pm__name">{user.fullName}</span>
           <span className="pm__email">{user.email}</span>
-          <span className={`pm__role${isSeller ? ' pm__role--seller' : ''}`}>
-            {isSeller ? (
+          <span className={`pm__role${isSeller ? ' pm__role--seller' : ''}${isAdminUser ? ' pm__role--admin' : ''}`}>
+            {isAdminUser ? (
+              <><Shield size={10} strokeWidth={2.5} /> Administrator</>
+            ) : isSeller ? (
               <><ShieldCheck size={10} strokeWidth={2.5} /> Verified Seller</>
             ) : (
               'Bidder'
@@ -91,6 +95,13 @@ export function ProfileMenu({ onClose }: Props) {
         </button>
 
         {/* Role-specific items */}
+        {isAdmin && (
+          <Link href="/admin" className="pm__item pm__item--admin" role="menuitem" onClick={onClose}>
+            <Shield size={15} className="pm__item-icon" />
+            Admin Console
+          </Link>
+        )}
+
         {canAccessSellerTools ? (
           <>
             <Link href="/dashboard" className="pm__item" role="menuitem" onClick={onClose}>

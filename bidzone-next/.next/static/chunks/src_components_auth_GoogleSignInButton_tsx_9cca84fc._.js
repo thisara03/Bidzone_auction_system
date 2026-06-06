@@ -103,6 +103,8 @@ function GoogleSignInButton() {
                     });
                     if (r === 'ok') {
                         router.replace('/home');
+                    } else if (r === 'database_unavailable') {
+                        setError(t('login.errDatabase'));
                     } else {
                         setError(t('login.errGoogle'));
                     }
@@ -132,7 +134,7 @@ function GoogleSignInButton() {
             children: t('login.googleNotConfigured')
         }, void 0, false, {
             fileName: "[project]/src/components/auth/GoogleSignInButton.tsx",
-            lineNumber: 94,
+            lineNumber: 100,
             columnNumber: 7
         }, this);
     }
@@ -145,20 +147,20 @@ function GoogleSignInButton() {
                     className: "lp__g-btn__icon-slot"
                 }, void 0, false, {
                     fileName: "[project]/src/components/auth/GoogleSignInButton.tsx",
-                    lineNumber: 103,
+                    lineNumber: 109,
                     columnNumber: 9
                 }, this),
                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                     children: "Continue with Google"
                 }, void 0, false, {
                     fileName: "[project]/src/components/auth/GoogleSignInButton.tsx",
-                    lineNumber: 104,
+                    lineNumber: 110,
                     columnNumber: 9
                 }, this)
             ]
         }, void 0, true, {
             fileName: "[project]/src/components/auth/GoogleSignInButton.tsx",
-            lineNumber: 102,
+            lineNumber: 108,
             columnNumber: 7
         }, this);
     }
@@ -179,16 +181,16 @@ function GoogleSignInButton() {
                             "aria-hidden": true
                         }, void 0, false, {
                             fileName: "[project]/src/components/auth/GoogleSignInButton.tsx",
-                            lineNumber: 120,
+                            lineNumber: 126,
                             columnNumber: 13
                         }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(GoogleColorIcon, {}, void 0, false, {
                             fileName: "[project]/src/components/auth/GoogleSignInButton.tsx",
-                            lineNumber: 122,
+                            lineNumber: 128,
                             columnNumber: 13
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/src/components/auth/GoogleSignInButton.tsx",
-                        lineNumber: 118,
+                        lineNumber: 124,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -196,13 +198,13 @@ function GoogleSignInButton() {
                         children: loading ? 'Signing in…' : 'Continue with Google'
                     }, void 0, false, {
                         fileName: "[project]/src/components/auth/GoogleSignInButton.tsx",
-                        lineNumber: 125,
+                        lineNumber: 131,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/components/auth/GoogleSignInButton.tsx",
-                lineNumber: 111,
+                lineNumber: 117,
                 columnNumber: 7
             }, this),
             error && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -211,13 +213,13 @@ function GoogleSignInButton() {
                 children: error
             }, void 0, false, {
                 fileName: "[project]/src/components/auth/GoogleSignInButton.tsx",
-                lineNumber: 130,
+                lineNumber: 136,
                 columnNumber: 9
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/src/components/auth/GoogleSignInButton.tsx",
-        lineNumber: 110,
+        lineNumber: 116,
         columnNumber: 5
     }, this);
 }

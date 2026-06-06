@@ -65,9 +65,15 @@ export function GoogleSignInButton() {
         if (!res.ok) throw new Error('userinfo_failed')
         const info = (await res.json()) as UserInfoResponse
         if (!info.email || info.email_verified === false) throw new Error('unverified')
-        const r = await loginWithGoogleProfile({ email: info.email, name: info.name, picture: info.picture })
+        const r = await loginWithGoogleProfile({
+          email: info.email,
+          name: info.name,
+          picture: info.picture,
+        })
         if (r === 'ok') {
           router.replace('/home')
+        } else if (r === 'database_unavailable') {
+          setError(t('login.errDatabase'))
         } else {
           setError(t('login.errGoogle'))
         }

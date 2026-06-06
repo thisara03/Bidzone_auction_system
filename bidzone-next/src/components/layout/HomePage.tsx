@@ -1,5 +1,5 @@
 'use client'
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { HelpCircle, TrendingUp } from 'lucide-react'
@@ -15,14 +15,15 @@ import {
 } from '@phosphor-icons/react'
 import { SiteHeader } from '@/components/layout/SiteHeader'
 import { SiteFooter } from '@/components/layout/SiteFooter'
-import { HomeAdRail } from '@/components/ui/HomeAdRail'
+import { HomeAdRail, type BannerSlotData } from '@/components/ui/HomeAdRail'
 import { HomeServiceAndGuide } from '@/components/ui/HomeServiceAndGuide'
 import { AuctionCard } from '@/components/ui/AuctionCard'
-import { featuredAuctions, categories, type AuctionItem } from '@/data/auctions'
+import { categories, type AuctionItem } from '@/data/auctions'
 import { useListings } from '@/context/ListingsContext'
 import { useI18n } from '@/context/I18nContext'
 import { useHelp } from '@/context/HelpContext'
 import { categorySlugMatchesItem, queryMatchesItem } from '@/lib/auctionFilters'
+import type { PublicBanner } from '@/types/admin'
 
 const iconMap = {
   laptop: Desktop,
@@ -55,11 +56,34 @@ function sortList(list: AuctionItem[], sort: SortKey) {
 
 export function HomePage() {
   const [sort, setSort] = useState<SortKey>('ending')
+  const [banners, setBanners] = useState<PublicBanner[]>([])
   const searchParams = useSearchParams()
   const router = useRouter()
   const { mergedCatalog } = useListings()
   const { t } = useI18n()
   const { openHelp } = useHelp()
+
+  useEffect(() => {
+    fetch('/api/banners')
+      .then((r) => (r.ok ? r.json() : { banners: [] }))
+      .then((data: { banners: PublicBanner[] }) => setBanners(data.banners ?? []))
+      .catch(() => setBanners([]))
+  }, [])
+
+  const bannerSlots = useMemo(() => {
+    const map: Partial<Record<PublicBanner['placement'], BannerSlotData>> = {}
+    for (const b of banners) {
+      if (!map[b.placement]) {
+        map[b.placement] = {
+          imageUrl: b.imageUrl,
+          href: b.linkUrl,
+          title: b.title,
+          subtitle: b.subtitle,
+        }
+      }
+    }
+    return map
+  }, [banners])
 
   const q = searchParams.get('q') ?? ''
   const categorySlug = searchParams.get('category')
@@ -71,12 +95,16 @@ export function HomePage() {
 
   const sorted = useMemo(() => sortList(filtered, sort), [filtered, sort])
 
-  const featuredFiltered = useMemo(() => {
-    const ids = new Set(featuredAuctions.map((x) => x.id))
-    return mergedCatalog.filter(
-      (item) => ids.has(item.id) && queryMatchesItem(item, q) && categorySlugMatchesItem(item, categorySlug, categories),
-    )
-  }, [mergedCatalog, q, categorySlug])
+  const featuredFiltered = useMemo(
+    () =>
+      mergedCatalog.filter(
+        (item) =>
+          item.featured &&
+          queryMatchesItem(item, q) &&
+          categorySlugMatchesItem(item, categorySlug, categories),
+      ),
+    [mergedCatalog, q, categorySlug],
+  )
 
   const hasFilters = Boolean(q.trim() || categorySlug)
 
@@ -101,7 +129,11 @@ export function HomePage() {
 
       <div className="home-page__body-grid">
         <aside className="home-page__rail home-page__rail--left">
-          <HomeAdRail side="left" />
+          <HomeAdRail
+            side="left"
+            primary={bannerSlots.left_primary}
+            secondary={bannerSlots.left_secondary}
+          />
         </aside>
 
         <div className="home-page__center">
@@ -220,7 +252,11 @@ export function HomePage() {
         </div>
 
         <aside className="home-page__rail home-page__rail--right">
-          <HomeAdRail side="right" />
+          <HomeAdRail
+            side="right"
+            primary={bannerSlots.right_primary}
+            secondary={bannerSlots.right_secondary}
+          />
         </aside>
       </div>
 

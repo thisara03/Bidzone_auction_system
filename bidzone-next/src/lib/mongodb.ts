@@ -33,12 +33,21 @@ export async function connectToDatabase(): Promise<typeof mongoose> {
     cached.promise = mongoose
       .connect(MONGODB_URI, {
         bufferCommands: false,
+        serverSelectionTimeoutMS: 8_000,
+        connectTimeoutMS: 8_000,
       })
       .then((m) => m);
   }
 
   cached.conn = await cached.promise;
   return cached.conn;
+}
+
+export function isDbConnectionError(err: unknown): boolean {
+  return (
+    err instanceof Error &&
+    (err.name === 'MongooseServerSelectionError' || err.name === 'MongoServerSelectionError')
+  )
 }
 
 export default connectToDatabase;

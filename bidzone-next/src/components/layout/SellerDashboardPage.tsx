@@ -1,7 +1,8 @@
 'use client'
-import { useMemo } from 'react'
+import { useMemo, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Plus, DollarSign, Package, Eye, BarChart3, TrendingUp, HelpCircle } from 'lucide-react'
+import { useSearchParams, useRouter } from 'next/navigation'
+import { ArrowLeft, Plus, DollarSign, Package, Eye, BarChart3, TrendingUp, HelpCircle, Clock, CheckCircle2, XCircle } from 'lucide-react'
 import { SiteFooter } from '@/components/layout/SiteFooter'
 import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher'
 import { useListings } from '@/context/ListingsContext'
@@ -35,11 +36,30 @@ function isEndingToday(iso: string): boolean {
   )
 }
 
-const DEMO_ROWS: Pick<AuctionItem, 'id' | 'title' | 'currentBid' | 'bids' | 'timeLeft'>[] = [
-  { id: 'demo-1', title: 'Vintage Camera', currentBid: 450, bids: 12, timeLeft: '2h 15m' },
-  { id: 'demo-2', title: 'Designer Watch', currentBid: 1200, bids: 23, timeLeft: '5h 30m' },
-  { id: 'demo-3', title: 'Rare Vinyl Record', currentBid: 180, bids: 7, timeLeft: '1d 3h' },
-]
+function ListingStatusBadge({ status, t }: { status?: AuctionItem['moderationStatus']; t: (k: string) => string }) {
+  if (status === 'approved') {
+    return (
+      <span className="seller-dash__status seller-dash__status--approved">
+        <CheckCircle2 size={14} aria-hidden />
+        {t('seller.statusApproved')}
+      </span>
+    )
+  }
+  if (status === 'rejected') {
+    return (
+      <span className="seller-dash__status seller-dash__status--rejected">
+        <XCircle size={14} aria-hidden />
+        {t('seller.statusRejected')}
+      </span>
+    )
+  }
+  return (
+    <span className="seller-dash__status seller-dash__status--pending">
+      <Clock size={14} aria-hidden />
+      {t('seller.statusPending')}
+    </span>
+  )
+}
 
 function RevenueAreaChart({ values }: { values: number[] }) {
   const w = 520, h = 200, padL = 44, padR = 16, padT = 16, padB = 32
@@ -134,51 +154,66 @@ export function SellerDashboardPage() {
   const { userListings } = useListings()
   const { t } = useI18n()
   const { openHelp } = useHelp()
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const [showPendingBanner, setShowPendingBanner] = useState(false)
+
+  useEffect(() => {
+    if (searchParams.get('listing') === 'pending') {
+      setShowPendingBanner(true)
+      router.replace('/dashboard', { scroll: false })
+    }
+  }, [searchParams, router])
+
+  const approvedListings = useMemo(
+    () => userListings.filter((x) => x.moderationStatus === 'approved'),
+    [userListings],
+  )
 
   const metrics = useMemo(() => {
-    const hasReal = userListings.length > 0
-    const revenue = userListings.reduce((s, x) => s + x.currentBid, 0)
-    const views = userListings.reduce((s, x) => s + viewsForItem(x), 0)
-    const endingToday = userListings.filter((x) => {
+    const hasReal = approvedListings.length > 0
+    const revenue = approvedListings.reduce((s, x) => s + x.currentBid, 0)
+    const views = approvedListings.reduce((s, x) => s + viewsForItem(x), 0)
+    const endingToday = approvedListings.filter((x) => {
       if (x.auctionEndsAt) return isEndingToday(x.auctionEndsAt)
       return /^\d+h\b/.test(x.timeLeft.trim())
     }).length
-    const sold = Math.max(0, Math.floor(userListings.length * 2.4 + 42))
+    const sold = Math.max(0, Math.floor(approvedListings.length * 2.4))
     return {
-      activeKpi: hasReal ? userListings.length : 18,
-      revenue: revenue || 24580,
-      views: views || 8942,
-      sold: hasReal ? sold : 142,
-      endingToday: hasReal ? endingToday || 1 : 3,
+      activeKpi: approvedListings.length,
+      revenue: hasReal ? revenue : 0,
+      views: hasReal ? views : 0,
+      sold: hasReal ? sold : 0,
+      endingToday,
     }
-  }, [userListings])
+  }, [approvedListings])
 
   const revenueSeries = useMemo(() => {
+    if (approvedListings.length === 0) return [0, 0, 0, 0, 0, 0, 0]
     const base = metrics.revenue / 7
-    const seed = userListings.length ? hashId(userListings[0]?.id ?? 'x') : 42
+    const seed = hashId(approvedListings[0]?.id ?? 'x')
     return [0, 1, 2, 3, 4, 5, 6].map((d) => {
       const wobble = 0.75 + ((seed >> (d * 3)) % 50) / 100
       return Math.round(base * (d + 2) * wobble * 0.35 + base * d * 0.15 + 800)
     })
-  }, [metrics.revenue, userListings])
+  }, [metrics.revenue, approvedListings])
 
-  const donutSegs = useMemo(() => bucketCategory(userListings), [userListings])
+  const donutSegs = useMemo(() => bucketCategory(approvedListings), [approvedListings])
 
-  const tableRows = useMemo(() => {
-    if (userListings.length > 0) {
-      return userListings.map((item) => ({
-        id: item.id, title: item.title, bid: item.currentBid,
-        views: viewsForItem(item), bids: item.bids,
+  const tableRows = useMemo(
+    () =>
+      userListings.map((item) => ({
+        id: item.id,
+        title: item.title,
+        bid: item.currentBid,
+        views: viewsForItem(item),
+        bids: item.bids,
         ends: item.auctionEndsAt ? displayAuctionEndLocal(item.auctionEndsAt) : item.timeLeft,
-        href: `/listing/${item.id}`, demo: false,
-      }))
-    }
-    return DEMO_ROWS.map((r) => ({
-      id: r.id, title: r.title, bid: r.currentBid,
-      views: r.id === 'demo-1' ? 234 : r.id === 'demo-2' ? 456 : 89,
-      bids: r.bids, ends: r.timeLeft, href: '/seller/new', demo: true,
-    }))
-  }, [userListings])
+        href: `/listing/${item.id}`,
+        status: item.moderationStatus,
+      })),
+    [userListings],
+  )
 
   return (
     <div className="seller-dash">
@@ -203,6 +238,19 @@ export function SellerDashboardPage() {
       </header>
 
       <div className="seller-dash__content">
+        {showPendingBanner && (
+          <div className="seller-dash__pending-banner" role="status">
+            <Clock size={20} aria-hidden />
+            <div>
+              <strong>{t('seller.pendingBannerTitle')}</strong>
+              <p>{t('seller.pendingBannerBody')}</p>
+            </div>
+            <button type="button" className="seller-dash__pending-dismiss" onClick={() => setShowPendingBanner(false)}>
+              {t('seller.pendingBannerDismiss')}
+            </button>
+          </div>
+        )}
+
         <div className="seller-dash__kpis">
           <article className="seller-dash__kpi">
             <DollarSign className="seller-dash__kpi-icon" size={22} aria-hidden />
@@ -246,13 +294,14 @@ export function SellerDashboardPage() {
         </div>
 
         <section className="seller-dash__table-card">
-          <h2 className="seller-dash__table-title">{t('seller.activeListingsTitle')}</h2>
+          <h2 className="seller-dash__table-title">{t('seller.yourListingsTitle')}</h2>
           {userListings.length === 0 && <p className="seller-dash__table-hint">{t('seller.tableEmpty')}</p>}
           <div className="seller-dash__table-scroll">
             <table className="seller-dash__table">
               <thead>
                 <tr>
                   <th>{t('seller.colItem')}</th>
+                  <th>{t('seller.colStatus')}</th>
                   <th>{t('seller.colCurrentBid')}</th>
                   <th>{t('seller.colViews')}</th>
                   <th>{t('seller.colBids')}</th>
@@ -262,18 +311,15 @@ export function SellerDashboardPage() {
               </thead>
               <tbody>
                 {tableRows.map((row) => (
-                  <tr key={row.id} className={row.demo ? 'seller-dash__tr--demo' : undefined}>
+                  <tr key={row.id}>
                     <td><Link href={row.href} className="seller-dash__item-link">{row.title}</Link></td>
+                    <td><ListingStatusBadge status={row.status} t={t} /></td>
                     <td className="seller-dash__bid">{formatMoney(row.bid)}</td>
                     <td>{row.views}</td>
                     <td>{row.bids}</td>
                     <td>{row.ends}</td>
                     <td>
-                      {row.demo ? (
-                        <span className="seller-dash__edit-muted">—</span>
-                      ) : (
-                        <Link href={`/seller/edit/${row.id}`} className="seller-dash__edit">{t('seller.edit')}</Link>
-                      )}
+                      <Link href={`/seller/edit/${row.id}`} className="seller-dash__edit">{t('seller.edit')}</Link>
                     </td>
                   </tr>
                 ))}

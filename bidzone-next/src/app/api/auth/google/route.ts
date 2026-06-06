@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
-import { connectToDatabase } from '@/lib/mongodb'
+import { connectToDatabase, isDbConnectionError } from '@/lib/mongodb'
 import { UserModel } from '@/models/User'
-import { signToken } from '@/lib/auth'
-import { toUserProfile } from '@/lib/userProfile'
+import { buildAuthResponse } from '@/lib/authResponse'
+import { isAdminEmail } from '@/lib/admin'
 
 export async function POST(req: NextRequest) {
   try {
@@ -24,7 +24,9 @@ export async function POST(req: NextRequest) {
       const displayName = name?.trim() || normalEmail.split('@')[0] || 'Bidder'
 
       user = await UserModel.create({
-        role: 'bidder',
+        role: isAdminEmail(normalEmail) ? 'admin' : 'bidder',
+        isSuperAdmin: isAdminEmail(normalEmail),
+        delegatedAdmin: false,
         fullName: displayName,
         email: normalEmail,
         passwordHash,
@@ -38,20 +40,16 @@ export async function POST(req: NextRequest) {
         avatarUrl: picture ?? null,
       })
     } else if (picture && user.avatarUrl !== picture) {
-      /* Keep profile picture in sync on each login */
       user.avatarUrl = picture
       await user.save()
     }
 
-    const token = signToken({
-      userId: user._id.toString(),
-      email: user.email,
-      role: user.role,
-    })
-
-    return NextResponse.json({ token, user: toUserProfile(user) })
+    return NextResponse.json(await buildAuthResponse(user))
   } catch (err) {
     console.error('[/api/auth/google]', err)
+    if (isDbConnectionError(err)) {
+      return NextResponse.json({ error: 'database_unavailable' }, { status: 503 })
+    }
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { connectToDatabase } from '@/lib/mongodb'
 import { UserModel } from '@/models/User'
-import { requireAuth } from '@/lib/auth'
+import { requireAuth, signToken } from '@/lib/auth'
+import { syncAdminRole } from '@/lib/admin'
 import { toUserProfile } from '@/lib/userProfile'
 
 export async function GET(req: NextRequest) {
@@ -18,7 +19,22 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    return NextResponse.json({ user: toUserProfile(user) })
+    const roleBefore = user.role
+    await syncAdminRole(user)
+
+    const payload: { user: ReturnType<typeof toUserProfile>; token?: string } = {
+      user: toUserProfile(user),
+    }
+
+    if (user.role !== roleBefore || user.role !== claims.role) {
+      payload.token = signToken({
+        userId: user._id.toString(),
+        email: user.email,
+        role: user.role,
+      })
+    }
+
+    return NextResponse.json(payload)
   } catch (err) {
     console.error('[/api/auth/me GET]', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
@@ -43,25 +59,45 @@ export async function PATCH(req: NextRequest) {
 
     await connectToDatabase()
 
-    const allowed: Record<string, unknown> = {}
-    if (body.role !== undefined) allowed.role = body.role
-    if (body.phone !== undefined) allowed.phone = body.phone
-    if (body.phoneVerified !== undefined) allowed.phoneVerified = body.phoneVerified
-    if (body.kycStatus !== undefined) allowed.kycStatus = body.kycStatus
-    if (body.listingAllowed !== undefined) allowed.listingAllowed = body.listingAllowed
-    if (body.fraudCheckPassed !== undefined) allowed.fraudCheckPassed = body.fraudCheckPassed
+    const user = await UserModel.findById(claims.userId)
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
 
-    const user = await UserModel.findByIdAndUpdate(
+    if (user.role === 'admin') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
+    const allowed: Record<string, unknown> = {}
+
+    if (typeof body.phone === 'string') {
+      allowed.phone = body.phone.trim()
+    }
+
+    /* Bidder → seller upgrade only; privileges require admin approval */
+    if (body.role === 'seller' && user.role === 'bidder') {
+      allowed.role = 'seller'
+      allowed.kycStatus = 'pending'
+      allowed.phoneVerified = false
+      allowed.listingAllowed = false
+      allowed.fraudCheckPassed = false
+    }
+
+    if (Object.keys(allowed).length === 0) {
+      return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 })
+    }
+
+    const updated = await UserModel.findByIdAndUpdate(
       claims.userId,
       { $set: allowed },
       { new: true, runValidators: true },
     )
 
-    if (!user) {
+    if (!updated) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    return NextResponse.json({ user: toUserProfile(user) })
+    return NextResponse.json({ user: toUserProfile(updated) })
   } catch (err) {
     console.error('[/api/auth/me PATCH]', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

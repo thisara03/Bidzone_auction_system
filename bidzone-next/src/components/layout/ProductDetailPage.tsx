@@ -11,6 +11,7 @@ import { PriceHistoryChart } from '@/components/ui/PriceHistoryChart'
 import { WinProbabilityGauge } from '@/components/ui/WinProbabilityGauge'
 import { BidCoachPanel } from '@/components/ui/BidCoachPanel'
 import { getAuctionDetail } from '@/data/auctionDetails'
+import type { AuctionItem } from '@/data/auctions'
 import { secondsUntil } from '@/lib/auctionTime'
 import { estimateWinProbability } from '@/lib/winProbability'
 import { useListings } from '@/context/ListingsContext'
@@ -44,12 +45,31 @@ export function ProductDetailPage() {
   const params = useParams<{ id: string }>()
   const id = params?.id
   const router = useRouter()
-  const { mergedCatalog, placeBid } = useListings()
+  const { mergedCatalog, placeBid, fetchListingById } = useListings()
   const { has, toggle } = useWishlist()
   const { has: cartHasItem, add: addToCart } = useCart()
   const { addBidPlaced, addLotBroadcast } = useNotifications()
   const { t } = useI18n()
-  const detail = id ? getAuctionDetail(id, mergedCatalog) : undefined
+  const [extraItem, setExtraItem] = useState<AuctionItem | null>(null)
+
+  useEffect(() => {
+    if (!id) return
+    if (mergedCatalog.some((a) => a.id === id)) {
+      setExtraItem(null)
+      return
+    }
+    void fetchListingById(id).then((item) => setExtraItem(item))
+  }, [id, mergedCatalog, fetchListingById])
+
+  const catalogForDetail = useMemo(() => {
+    if (!extraItem) return mergedCatalog
+    if (mergedCatalog.some((a) => a.id === extraItem.id)) return mergedCatalog
+    return [...mergedCatalog, extraItem]
+  }, [mergedCatalog, extraItem])
+
+  const detail = id ? getAuctionDetail(id, catalogForDetail) : undefined
+  const isPending = detail?.moderationStatus === 'pending'
+  const isRejected = detail?.moderationStatus === 'rejected'
 
   const minBid = detail ? detail.currentBid + detail.bidIncrement : 0
   const [bidAmount, setBidAmount] = useState(minBid)
@@ -99,7 +119,7 @@ export function ProductDetailPage() {
   }, [detail])
 
   const handlePlaceBid = useCallback(async () => {
-    if (!detail) return
+    if (!detail || isPending || isRejected) return
     if (!Number.isFinite(bidAmount) || bidAmount < minBid) {
       window.alert(t('product.bidRejected'))
       return
@@ -113,7 +133,7 @@ export function ProductDetailPage() {
     if (!ok) { window.alert(t('product.bidRejected')); return }
     addBidPlaced(bidAmount, detail.title)
     addLotBroadcast(detail.title, bidAmount)
-  }, [detail, bidAmount, minBid, placeBid, addBidPlaced, addLotBroadcast, t])
+  }, [detail, bidAmount, minBid, placeBid, addBidPlaced, addLotBroadcast, t, isPending, isRejected])
 
   const handleBuyNow = useCallback(() => {
     if (!detail || detail.buyNow == null) return
@@ -134,6 +154,14 @@ export function ProductDetailPage() {
           <ArrowLeft size={18} aria-hidden />
           {t('product.back')}
         </Link>
+
+        {(isPending || isRejected) && (
+          <div className="product-detail__moderation-banner" role="status">
+            {isPending
+              ? 'This listing is awaiting admin approval and is not visible on the marketplace yet.'
+              : 'This listing was rejected by an administrator.'}
+          </div>
+        )}
 
         <div className="product-detail__grid">
           <div className="product-detail__col product-detail__col--main">
@@ -255,7 +283,12 @@ export function ProductDetailPage() {
                     onChange={(e) => setBidAmount(Number(e.target.value))}
                   />
                 </div>
-                <button type="button" className="product-detail__place-bid" onClick={handlePlaceBid}>
+                <button
+                  type="button"
+                  className="product-detail__place-bid"
+                  onClick={handlePlaceBid}
+                  disabled={isPending || isRejected}
+                >
                   <Gavel size={18} aria-hidden />
                   {t('product.placeBid')}
                 </button>
@@ -269,7 +302,7 @@ export function ProductDetailPage() {
                 <button
                   type="button"
                   className="product-detail__btn product-detail__btn--buy"
-                  disabled={cartHas}
+                  disabled={cartHas || isPending || isRejected}
                   onClick={handleBuyNow}
                 >
                   <ShoppingCart size={18} aria-hidden />

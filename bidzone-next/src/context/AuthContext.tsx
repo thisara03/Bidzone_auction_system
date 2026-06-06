@@ -39,10 +39,15 @@ export type SellerRegisterInput = {
 type AuthContextValue = {
   user: UserProfile | null
   isAuthenticated: boolean
+  isAdmin: boolean
   canAccessSellerTools: boolean
   login: (email: string, password: string) => Promise<'ok' | 'invalid'>
-  loginWithGoogle: (idTokenCredential: string) => Promise<'ok' | 'invalid'>
-  loginWithGoogleProfile: (profile: { email: string; name?: string; picture?: string }) => Promise<'ok' | 'invalid'>
+  loginWithGoogle: (idTokenCredential: string) => Promise<'ok' | 'invalid' | 'database_unavailable'>
+  loginWithGoogleProfile: (profile: {
+    email: string
+    name?: string
+    picture?: string
+  }) => Promise<'ok' | 'invalid' | 'database_unavailable'>
   logout: () => void
   registerBidder: (input: BidderRegisterInput) => Promise<'ok' | 'email_taken'>
   registerNewVerifiedSeller: (input: SellerRegisterInput) => Promise<'ok' | 'email_taken'>
@@ -68,8 +73,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!token) return
 
     api
-      .get<{ user: UserProfile }>('/auth/me')
-      .then(({ user: u }) => {
+      .get<{ user: UserProfile; token?: string }>('/auth/me')
+      .then(({ user: u, token: refreshed }) => {
+        if (refreshed) setToken(refreshed)
         setUser(u)
         setSessionUserId(u.id)
       })
@@ -93,14 +99,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  const loginWithGoogle = useCallback(async (idTokenCredential: string): Promise<'ok' | 'invalid'> => {
+  const loginWithGoogle = useCallback(async (idTokenCredential: string): Promise<'ok' | 'invalid' | 'database_unavailable'> => {
     const payload = parseGoogleIdToken(idTokenCredential)
     if (!payload?.email) return 'invalid'
     return loginWithGoogleProfile({ email: payload.email, name: payload.name })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const loginWithGoogleProfile = useCallback(
-    async (profile: { email: string; name?: string; picture?: string }): Promise<'ok' | 'invalid'> => {
+    async (profile: {
+      email: string
+      name?: string
+      picture?: string
+    }): Promise<'ok' | 'invalid' | 'database_unavailable'> => {
       try {
         const { token, user: u } = await api.post<AuthResponse>('/auth/google', {
           email: profile.email,
@@ -112,7 +122,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(u)
         clearLegacyAuthFlag()
         return 'ok'
-      } catch {
+      } catch (err) {
+        if (err instanceof Error && err.message === 'database_unavailable') {
+          return 'database_unavailable'
+        }
         return 'invalid'
       }
     },
@@ -181,10 +194,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const { user: u } = await api.patch<{ user: UserProfile }>('/auth/me', {
           role: 'seller',
           phone: input.phone,
-          phoneVerified: true,
-          kycStatus: 'verified',
-          listingAllowed: true,
-          fraudCheckPassed: true,
         })
         setUser(u)
         return 'ok'
@@ -196,6 +205,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   )
 
   const isAuthenticated = user !== null
+  const isAdmin = user?.role === 'admin'
   const canAccessSellerTools =
     user?.role === 'seller' && user.listingAllowed === true && user.phoneVerified === true
 
@@ -203,6 +213,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => ({
       user,
       isAuthenticated,
+      isAdmin,
       canAccessSellerTools,
       login,
       loginWithGoogle,
@@ -215,6 +226,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [
       user,
       isAuthenticated,
+      isAdmin,
       canAccessSellerTools,
       login,
       loginWithGoogle,

@@ -2,7 +2,11 @@ import mongoose, { Schema, type Document, type Model } from 'mongoose'
 
 export interface IUser extends Document {
   _id: mongoose.Types.ObjectId
-  role: 'bidder' | 'seller'
+  role: 'bidder' | 'seller' | 'admin'
+  /** Set only via ADMIN_EMAILS env sync — cannot be demoted from admin console */
+  isSuperAdmin: boolean
+  /** Promoted by an existing admin — can be demoted unless also super admin */
+  delegatedAdmin: boolean
   fullName: string
   email: string
   passwordHash: string
@@ -20,7 +24,7 @@ export interface IUser extends Document {
 
 const UserSchema = new Schema<IUser>(
   {
-    role: { type: String, enum: ['bidder', 'seller'], required: true },
+    role: { type: String, enum: ['bidder', 'seller', 'admin'], required: true },
     fullName: { type: String, required: true, trim: true },
     email: { type: String, required: true, unique: true, lowercase: true, trim: true, index: true },
     passwordHash: { type: String, required: true },
@@ -36,6 +40,8 @@ const UserSchema = new Schema<IUser>(
     listingAllowed: { type: Boolean, default: false },
     fraudCheckPassed: { type: Boolean, default: false },
     avatarUrl: { type: String, default: null },
+    isSuperAdmin: { type: Boolean, default: false },
+    delegatedAdmin: { type: Boolean, default: false },
   },
   { timestamps: true },
 )

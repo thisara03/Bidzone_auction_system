@@ -1,6 +1,6 @@
 /** Demo-only: passwords stored in localStorage; use a real backend for production. */
 
-export type UserRole = 'bidder' | 'seller'
+export type UserRole = 'bidder' | 'seller' | 'admin'
 
 export type KycStatus = 'not_required' | 'pending' | 'verified' | 'rejected'
 

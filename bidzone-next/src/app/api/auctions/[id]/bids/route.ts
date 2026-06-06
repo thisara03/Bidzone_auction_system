@@ -55,6 +55,10 @@ export async function POST(req: NextRequest, { params }: Params) {
       return NextResponse.json({ error: 'Auction not found' }, { status: 404 })
     }
 
+    if (auction.moderationStatus !== 'approved') {
+      return NextResponse.json({ error: 'Auction not available for bidding' }, { status: 403 })
+    }
+
     if (auction.auctionEndsAt && new Date() > auction.auctionEndsAt) {
       return NextResponse.json({ error: 'Auction has ended' }, { status: 400 })
     }

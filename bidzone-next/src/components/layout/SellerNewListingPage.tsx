@@ -139,10 +139,10 @@ export function SellerNewListingPage() {
 
     const resNum = reserve.trim() === '' ? NaN : Number(reserve)
     const buyNum = buyNow.trim() === '' ? NaN : Number(buyNow)
-    const listingId = isEdit && editId ? editId : `u-${crypto.randomUUID()}`
-    const seed = encodeURIComponent(title.trim().slice(0, 40) || listingId)
-    const createdAt = isEdit && editItem?.auctionCreatedAt ? editItem.auctionCreatedAt : new Date().toISOString()
+    const listingId = isEdit && editId ? editId : undefined
+    const createdAt = isEdit && editItem?.auctionCreatedAt ? editItem.auctionCreatedAt : undefined
 
+    const seed = encodeURIComponent(title.trim().slice(0, 40) || 'listing')
     let image = existingImageUrl ?? `https://picsum.photos/seed/${seed}/600/450`
     if (photos[0]) {
       try {
@@ -153,7 +153,7 @@ export function SellerNewListingPage() {
     }
 
     const item: AuctionItem = {
-      id: listingId,
+      id: listingId ?? '',
       title: title.trim(),
       image,
       category: cat.name,
@@ -170,9 +170,13 @@ export function SellerNewListingPage() {
       auctionCreatedAt: createdAt,
     }
 
-    if (isEdit) await updateListing(item)
-    else await addListing(item)
-    router.push(`/listing/${listingId}`)
+    if (isEdit && editId) {
+      const { pendingApproval } = await updateListing({ ...item, id: editId })
+      router.push(pendingApproval ? '/dashboard?listing=pending' : `/listing/${editId}`)
+    } else {
+      const { pendingApproval } = await addListing(item)
+      router.push(pendingApproval ? '/dashboard?listing=pending' : '/dashboard')
+    }
   }
 
   useEffect(() => {

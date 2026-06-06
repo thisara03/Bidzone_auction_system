@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { connectToDatabase } from '@/lib/mongodb'
 import { UserModel } from '@/models/User'
-import { signToken } from '@/lib/auth'
-import { toUserProfile } from '@/lib/userProfile'
+import { buildAuthResponse } from '@/lib/authResponse'
 
 export async function POST(req: NextRequest) {
   try {
@@ -25,7 +24,8 @@ export async function POST(req: NextRequest) {
 
     await connectToDatabase()
 
-    const exists = await UserModel.findOne({ email: email.toLowerCase().trim() })
+    const normalEmail = email.toLowerCase().trim()
+    const exists = await UserModel.findOne({ email: normalEmail })
     if (exists) {
       return NextResponse.json({ error: 'email_taken' }, { status: 409 })
     }
@@ -36,24 +36,18 @@ export async function POST(req: NextRequest) {
     const user = await UserModel.create({
       role: isSeller ? 'seller' : 'bidder',
       fullName: fullName.trim(),
-      email: email.toLowerCase().trim(),
+      email: normalEmail,
       passwordHash,
       address: address?.trim() ?? '',
       city: city?.trim() ?? '',
       phone: phone?.trim() ?? '',
-      phoneVerified: isSeller,
-      kycStatus: isSeller ? 'verified' : 'not_required',
-      listingAllowed: isSeller,
-      fraudCheckPassed: isSeller,
+      phoneVerified: false,
+      kycStatus: isSeller ? 'pending' : 'not_required',
+      listingAllowed: false,
+      fraudCheckPassed: false,
     })
 
-    const token = signToken({
-      userId: user._id.toString(),
-      email: user.email,
-      role: user.role,
-    })
-
-    return NextResponse.json({ token, user: toUserProfile(user) }, { status: 201 })
+    return NextResponse.json(await buildAuthResponse(user), { status: 201 })
   } catch (err) {
     console.error('[/api/auth/register]', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
