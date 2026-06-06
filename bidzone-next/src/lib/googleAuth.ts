@@ -20,6 +20,8 @@ export function parseGoogleIdToken(credential: string): GoogleIdTokenPayload | n
   }
 }
 
+import { getGoogleClientId } from '@/lib/env'
+
 export function googleOAuthClientId(): string {
-  return process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID?.trim() ?? ''
+  return getGoogleClientId()
 }

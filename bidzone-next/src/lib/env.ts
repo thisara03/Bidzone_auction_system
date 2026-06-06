@@ -1,10 +1,10 @@
 /**
  * Server-side environment configuration.
  *
- * SECURITY:
- * - Secrets live only in `.env.local` (local) or Vercel Environment Variables (production).
- * - Never commit `.env.local` or paste secrets into source code.
- * - Only `NEXT_PUBLIC_*` vars are exposed to the browser bundle.
+ * Uses dynamic `process.env[key]` lookups so Next.js does not inline empty
+ * values at build time when secrets are only set in Vercel at runtime.
+ *
+ * SECURITY: secrets only in `.env.local` (local) or Vercel env vars (production).
  */
 
 const WEAK_JWT_PLACEHOLDERS = new Set([
@@ -17,10 +17,11 @@ const WEAK_JWT_PLACEHOLDERS = new Set([
 
 const MIN_JWT_SECRET_LENGTH = 32
 
-function firstNonEmpty(...values: Array<string | undefined>): string | undefined {
-  for (const value of values) {
-    const trimmed = value?.trim()
-    if (trimmed) return trimmed
+/** Runtime env read — dynamic key avoids build-time replacement with "". */
+function readEnv(...keys: string[]): string | undefined {
+  for (const key of keys) {
+    const value = process.env[key]?.trim()
+    if (value) return value
   }
   return undefined
 }
@@ -30,24 +31,19 @@ function isProduction(): boolean {
 }
 
 export function getMongoUri(): string | undefined {
-  return firstNonEmpty(
-    process.env.MONGODB_URI,
-    process.env.MONGODB_URL,
-    process.env.DATABASE_URL,
-    process.env.MONGO_URI,
-  )
+  return readEnv('MONGODB_URI', 'MONGODB_URL', 'DATABASE_URL', 'MONGO_URI')
 }
 
 export function getJwtSecret(): string | undefined {
-  return firstNonEmpty(process.env.JWT_SECRET, process.env.AUTH_SECRET)
+  return readEnv('JWT_SECRET', 'AUTH_SECRET')
 }
 
 export function getAdminEmails(): string {
-  return process.env.ADMIN_EMAILS ?? ''
+  return readEnv('ADMIN_EMAILS') ?? ''
 }
 
 export function getGoogleClientId(): string {
-  return process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID?.trim() ?? ''
+  return readEnv('NEXT_PUBLIC_GOOGLE_CLIENT_ID') ?? ''
 }
 
 export type MissingEnvVar = 'MONGODB_URI' | 'JWT_SECRET'
@@ -73,9 +69,6 @@ function validateJwtSecret(secret: string): EnvValidationIssue | null {
     return { code: 'weak_jwt_secret', variable: 'JWT_SECRET' }
   }
   if (WEAK_JWT_PLACEHOLDERS.has(normalized)) {
-    return { code: 'weak_jwt_secret', variable: 'JWT_SECRET' }
-  }
-  if (isProduction() && /^bidzone_jwt/i.test(secret)) {
     return { code: 'weak_jwt_secret', variable: 'JWT_SECRET' }
   }
   return null

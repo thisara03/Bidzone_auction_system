@@ -14,13 +14,13 @@
   "components\\layout\\LoginPage.tsx -> @/components/auth/GoogleSignInButton": {
     "id": 285,
     "files": [
-      "static/chunks/285.643224b9475d0642.js"
+      "static/chunks/285.dd453cd94b634859.js"
     ]
   },
   "components\\layout\\RegisterPage.tsx -> @/components/auth/GoogleSignInButton": {
     "id": 285,
     "files": [
-      "static/chunks/285.643224b9475d0642.js"
+      "static/chunks/285.dd453cd94b634859.js"
     ]
   },
   "context\\ListingsContext.tsx -> @/lib/liveAuctionBids": {
