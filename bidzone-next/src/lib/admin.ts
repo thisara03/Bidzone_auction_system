@@ -5,12 +5,13 @@
 import type { NextRequest } from 'next/server'
 import { connectToDatabase } from '@/lib/mongodb'
 import { requireAuth } from '@/lib/auth'
+import { getAdminEmails } from '@/lib/env'
 import { UserModel, type IUser } from '@/models/User'
 
 /** Comma-separated super-admin allowlist from environment. */
 export function getAdminAllowlist(): Set<string> {
   return new Set(
-    (process.env.ADMIN_EMAILS ?? '')
+    getAdminEmails()
       .split(',')
       .map((email) => email.trim().toLowerCase())
       .filter(Boolean),

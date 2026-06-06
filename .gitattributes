@@ -1,0 +1,4 @@
+# Prevent accidental export of local env files in archives
+.env.local export-ignore
+.env*.local export-ignore
+**/.env.local export-ignore

@@ -1,8 +1,11 @@
 #!/usr/bin/env node
 /**
  * Push variables from .env.local to the linked Vercel project.
- * Usage: node scripts/sync-vercel-env.mjs
- * Requires: vercel CLI logged in (`npx vercel login`) and project linked (`npx vercel link` in bidzone-next).
+ * Never logs secret values. Requires Vercel CLI login + project link.
+ *
+ * Usage:
+ *   npx vercel login && npx vercel link
+ *   npm run vercel:sync-env
  */
 import { readFileSync, existsSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
@@ -39,6 +42,20 @@ function parseEnvFile(content) {
   return vars
 }
 
+function validateBeforePush(vars) {
+  const errors = []
+  if (!vars.MONGODB_URI?.startsWith('mongodb')) {
+    errors.push('MONGODB_URI must start with mongodb:// or mongodb+srv://')
+  }
+  if (!vars.JWT_SECRET || vars.JWT_SECRET.length < 32) {
+    errors.push('JWT_SECRET must be at least 32 characters')
+  }
+  if (/<[^>]+>/.test(vars.MONGODB_URI ?? '')) {
+    errors.push('MONGODB_URI still contains placeholder angle brackets')
+  }
+  return errors
+}
+
 function addEnv(key, value, target) {
   const result = spawnSync(
     'npx',
@@ -48,10 +65,11 @@ function addEnv(key, value, target) {
       encoding: 'utf8',
       cwd: root,
       shell: true,
+      stdio: ['pipe', 'pipe', 'pipe'],
     },
   )
   if (result.status !== 0) {
-    console.error(`Failed to set ${key} for ${target}:`, result.stderr || result.stdout)
+    console.error(`Failed to set ${key} for ${target} (value not printed).`)
     return false
   }
   console.log(`✓ ${key} → ${target}`)
@@ -59,7 +77,7 @@ function addEnv(key, value, target) {
 }
 
 if (!existsSync(envPath)) {
-  console.error('Missing .env.local — create it from .env.example first.')
+  console.error('Missing .env.local — copy from .env.example:  copy .env.example .env.local')
   process.exit(1)
 }
 
@@ -70,7 +88,15 @@ if (missing.length) {
   process.exit(1)
 }
 
-console.log('Syncing env vars to Vercel (production + preview + development)…\n')
+const validationErrors = validateBeforePush(vars)
+if (validationErrors.length) {
+  console.error('Refusing to sync weak or invalid configuration:')
+  validationErrors.forEach((e) => console.error(`  - ${e}`))
+  process.exit(1)
+}
+
+console.log('Syncing required env vars to Vercel (production + preview + development)…')
+console.log('Secret values are never printed.\n')
 
 let ok = true
 for (const key of REQUIRED) {

@@ -4,7 +4,7 @@
  */
 import jwt from 'jsonwebtoken'
 import type { NextRequest } from 'next/server'
-import { getJwtSecret, missingEnvError } from '@/lib/env'
+import { assertServerEnv, getJwtSecret } from '@/lib/env'
 
 export type JwtPayload = {
   userId: string
@@ -15,8 +15,8 @@ export type JwtPayload = {
 }
 
 export function signToken(payload: Omit<JwtPayload, 'iat' | 'exp'>): string {
-  const secret = getJwtSecret()
-  if (!secret) throw missingEnvError('JWT_SECRET')
+  assertServerEnv()
+  const secret = getJwtSecret()!
   return jwt.sign(payload, secret, { expiresIn: '30d' })
 }
 

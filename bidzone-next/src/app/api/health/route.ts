@@ -1,19 +1,19 @@
 import { NextResponse } from 'next/server'
-import { getMissingServerEnv, getGoogleClientId } from '@/lib/env'
+import { getGoogleClientId, validateServerEnv } from '@/lib/env'
 
 /** Public health check — shows whether required env vars are present (not their values). */
 export async function GET() {
-  const missing = getMissingServerEnv()
-  const ok = missing.length === 0
+  const issues = validateServerEnv()
+  const ok = issues.length === 0
 
   return NextResponse.json(
     {
       ok,
-      missing,
+      issues: issues.map((i) => ({ code: i.code, variable: i.variable })),
       googleOAuthConfigured: Boolean(getGoogleClientId()),
       hint: ok
         ? undefined
-        : 'Set missing variables in Vercel → Environment Variables, then Redeploy (Deployments → ⋯ → Redeploy).',
+        : 'Fix env in Vercel or .env.local, then redeploy. See bidzone-next/.env.example',
     },
     { status: ok ? 200 : 503 },
   )

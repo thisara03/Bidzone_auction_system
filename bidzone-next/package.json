@@ -11,6 +11,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "security:check-secrets": "node scripts/check-no-secrets.mjs --staged",
+    "security:scan": "node scripts/check-no-secrets.mjs --staged",
     "vercel:sync-env": "node scripts/sync-vercel-env.mjs"
   },
   "dependencies": {

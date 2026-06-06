@@ -1,0 +1,15 @@
+# App-level ignore (defense in depth — root .gitignore also applies)
+
+# Secrets & local env — copy .env.example → .env.local (never commit .env.local)
+.env
+.env.*
+!.env.example
+.env*.local
+
+# Next.js / Vercel
+.next/
+out/
+.vercel/
+
+# Dependencies
+node_modules/

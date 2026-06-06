@@ -1,8 +1,21 @@
 /**
- * Server-side environment variables.
- * Values must be set in Vercel → Project Settings → Environment Variables
- * (or in bidzone-next/.env.local for local dev). .env.local is not deployed.
+ * Server-side environment configuration.
+ *
+ * SECURITY:
+ * - Secrets live only in `.env.local` (local) or Vercel Environment Variables (production).
+ * - Never commit `.env.local` or paste secrets into source code.
+ * - Only `NEXT_PUBLIC_*` vars are exposed to the browser bundle.
  */
+
+const WEAK_JWT_PLACEHOLDERS = new Set([
+  'your_super_secret_jwt_key_here',
+  'changeme',
+  'secret',
+  'jwt_secret',
+  'bidzone_jwt',
+])
+
+const MIN_JWT_SECRET_LENGTH = 32
 
 function firstNonEmpty(...values: Array<string | undefined>): string | undefined {
   for (const value of values) {
@@ -10,6 +23,10 @@ function firstNonEmpty(...values: Array<string | undefined>): string | undefined
     if (trimmed) return trimmed
   }
   return undefined
+}
+
+function isProduction(): boolean {
+  return process.env.NODE_ENV === 'production'
 }
 
 export function getMongoUri(): string | undefined {
@@ -35,19 +52,100 @@ export function getGoogleClientId(): string {
 
 export type MissingEnvVar = 'MONGODB_URI' | 'JWT_SECRET'
 
+export type EnvValidationIssue =
+  | { code: 'missing'; variable: MissingEnvVar }
+  | { code: 'invalid_mongodb_uri'; variable: 'MONGODB_URI' }
+  | { code: 'weak_jwt_secret'; variable: 'JWT_SECRET' }
+
+function validateMongoUri(uri: string): EnvValidationIssue | null {
+  if (!/^mongodb(\+srv)?:\/\//i.test(uri)) {
+    return { code: 'invalid_mongodb_uri', variable: 'MONGODB_URI' }
+  }
+  if (/<[^>]+>/.test(uri)) {
+    return { code: 'invalid_mongodb_uri', variable: 'MONGODB_URI' }
+  }
+  return null
+}
+
+function validateJwtSecret(secret: string): EnvValidationIssue | null {
+  const normalized = secret.toLowerCase()
+  if (secret.length < MIN_JWT_SECRET_LENGTH) {
+    return { code: 'weak_jwt_secret', variable: 'JWT_SECRET' }
+  }
+  if (WEAK_JWT_PLACEHOLDERS.has(normalized)) {
+    return { code: 'weak_jwt_secret', variable: 'JWT_SECRET' }
+  }
+  if (isProduction() && /^bidzone_jwt/i.test(secret)) {
+    return { code: 'weak_jwt_secret', variable: 'JWT_SECRET' }
+  }
+  return null
+}
+
+/** Validate required server env. Strict in production; lenient in local dev. */
+export function validateServerEnv(): EnvValidationIssue[] {
+  const issues: EnvValidationIssue[] = []
+
+  const mongoUri = getMongoUri()
+  if (!mongoUri) {
+    issues.push({ code: 'missing', variable: 'MONGODB_URI' })
+  } else {
+    const mongoIssue = validateMongoUri(mongoUri)
+    if (mongoIssue) issues.push(mongoIssue)
+  }
+
+  const jwtSecret = getJwtSecret()
+  if (!jwtSecret) {
+    issues.push({ code: 'missing', variable: 'JWT_SECRET' })
+  } else if (isProduction()) {
+    const jwtIssue = validateJwtSecret(jwtSecret)
+    if (jwtIssue) issues.push(jwtIssue)
+  }
+
+  return issues
+}
+
 export function getMissingServerEnv(): MissingEnvVar[] {
-  const missing: MissingEnvVar[] = []
-  if (!getMongoUri()) missing.push('MONGODB_URI')
-  if (!getJwtSecret()) missing.push('JWT_SECRET')
-  return missing
+  return validateServerEnv()
+    .filter((i): i is { code: 'missing'; variable: MissingEnvVar } => i.code === 'missing')
+    .map((i) => i.variable)
 }
 
 export function isMissingEnvError(err: unknown): boolean {
   return err instanceof Error && err.message.startsWith('MISSING_ENV:')
 }
 
+export function isInvalidEnvError(err: unknown): boolean {
+  return err instanceof Error && err.message.startsWith('INVALID_ENV:')
+}
+
 export function missingEnvError(name: MissingEnvVar): Error {
   return new Error(
     `MISSING_ENV:${name} — Add ${name} in Vercel → Settings → Environment Variables, then redeploy.`,
   )
+}
+
+export function invalidEnvError(name: string, detail: string): Error {
+  return new Error(`INVALID_ENV:${name} — ${detail}`)
+}
+
+/** Assert env is valid before DB/auth use. Throws typed errors for API handlers. */
+export function assertServerEnv(): void {
+  const issues = validateServerEnv()
+  for (const issue of issues) {
+    if (issue.code === 'missing') {
+      throw missingEnvError(issue.variable)
+    }
+    if (issue.code === 'invalid_mongodb_uri') {
+      throw invalidEnvError(
+        'MONGODB_URI',
+        'Must be a valid mongodb:// or mongodb+srv:// connection string with real credentials.',
+      )
+    }
+    if (issue.code === 'weak_jwt_secret') {
+      throw invalidEnvError(
+        'JWT_SECRET',
+        `Use at least ${MIN_JWT_SECRET_LENGTH} random characters (e.g. openssl rand -base64 48).`,
+      )
+    }
+  }
 }
