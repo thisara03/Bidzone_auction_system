@@ -5,10 +5,14 @@
 import jwt from 'jsonwebtoken'
 import type { NextRequest } from 'next/server'
 
-const JWT_SECRET = process.env.JWT_SECRET
-
-if (!JWT_SECRET) {
-  throw new Error('Please define JWT_SECRET in .env.local')
+function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET?.trim()
+  if (!secret) {
+    throw new Error(
+      'JWT_SECRET is not configured. Add it in Vercel → Project Settings → Environment Variables.',
+    )
+  }
+  return secret
 }
 
 export type JwtPayload = {
@@ -20,12 +24,12 @@ export type JwtPayload = {
 }
 
 export function signToken(payload: Omit<JwtPayload, 'iat' | 'exp'>): string {
-  return jwt.sign(payload, JWT_SECRET as string, { expiresIn: '30d' })
+  return jwt.sign(payload, getJwtSecret(), { expiresIn: '30d' })
 }
 
 export function verifyToken(token: string): JwtPayload | null {
   try {
-    return jwt.verify(token, JWT_SECRET as string) as JwtPayload
+    return jwt.verify(token, getJwtSecret()) as JwtPayload
   } catch {
     return null
   }

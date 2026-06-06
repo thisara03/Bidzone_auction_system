@@ -205,6 +205,9 @@
       "browserDebugInfoInTerminal": false,
       "optimizeRouterScrolling": false,
       "middlewareClientMaxBodySize": 10485760,
+      "serverActions": {
+        "bodySizeLimit": "10mb"
+      },
       "optimizePackageImports": [
         "lucide-react",
         "date-fns",
@@ -288,6 +291,9 @@
     "htmlLimitedBots": "[\\w-]+-Google|Google-[\\w-]+|Chrome-Lighthouse|Slurp|DuckDuckBot|baiduspider|yandex|sogou|bitlybot|tumblr|vkShare|quora link preview|redditbot|ia_archiver|Bingbot|BingPreview|applebot|facebookexternalhit|facebookcatalog|Twitterbot|LinkedInBot|Slackbot|Discordbot|WhatsApp|SkypeUriPreview|Yeti|googleweblight",
     "bundlePagesRouterDependencies": false,
     "configFileName": "next.config.ts",
+    "serverExternalPackages": [
+      "mongoose"
+    ],
     "turbopack": {
       "root": "C:\\Users\\llith\\OneDrive\\Desktop\\Bidzone_auction_system\\bidzone-next"
     }
