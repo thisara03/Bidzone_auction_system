@@ -10,7 +10,8 @@
     "dev:clean": "node -e \"require('fs').rmSync('.next',{recursive:true,force:true})\" && next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "vercel:sync-env": "node scripts/sync-vercel-env.mjs"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",

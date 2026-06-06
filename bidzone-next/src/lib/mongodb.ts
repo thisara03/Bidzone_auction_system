@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { getMongoUri, missingEnvError } from "@/lib/env";
 
 /**
  * Cached connection to avoid opening multiple connections during
@@ -17,25 +18,18 @@ declare global {
 const cached: MongooseCache = global._mongooseCache ?? { conn: null, promise: null };
 global._mongooseCache = cached;
 
-function getMongoUri(): string {
-  const uri = process.env.MONGODB_URI?.trim();
-  if (!uri) {
-    throw new Error(
-      "MONGODB_URI is not configured. Add it in Vercel → Project Settings → Environment Variables.",
-    );
-  }
-  return uri;
-}
-
 export async function connectToDatabase(): Promise<typeof mongoose> {
   if (cached.conn) {
     return cached.conn;
   }
 
   if (!cached.promise) {
-    const MONGODB_URI = getMongoUri();
+    const uri = getMongoUri();
+    if (!uri) {
+      throw missingEnvError("MONGODB_URI");
+    }
     cached.promise = mongoose
-      .connect(MONGODB_URI, {
+      .connect(uri, {
         bufferCommands: false,
         serverSelectionTimeoutMS: 8_000,
         connectTimeoutMS: 8_000,

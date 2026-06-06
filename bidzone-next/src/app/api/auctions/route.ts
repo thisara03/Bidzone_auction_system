@@ -6,6 +6,7 @@ import { requireAuth } from '@/lib/auth'
 import { isActiveAdmin } from '@/lib/admin'
 import { toAuctionItem } from '@/lib/auctionMapper'
 import { formatTimeLeftCompact } from '@/lib/auctionTime'
+import { apiErrorResponse } from '@/lib/apiError'
 import type { AuctionItem } from '@/data/auctions'
 
 type CreateBody = Partial<AuctionItem>
@@ -50,8 +51,7 @@ export async function GET() {
     })
     return NextResponse.json({ auctions: auctions.map(toAuctionItem) })
   } catch (err) {
-    console.error('[/api/auctions GET]', err)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return apiErrorResponse(err, '/api/auctions GET')
   }
 }
 
@@ -101,7 +101,6 @@ export async function POST(req: NextRequest) {
       { status: 201 },
     )
   } catch (err) {
-    console.error('[/api/auctions POST]', err)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return apiErrorResponse(err, '/api/auctions POST')
   }
 }

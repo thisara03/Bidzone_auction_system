@@ -4,16 +4,7 @@
  */
 import jwt from 'jsonwebtoken'
 import type { NextRequest } from 'next/server'
-
-function getJwtSecret(): string {
-  const secret = process.env.JWT_SECRET?.trim()
-  if (!secret) {
-    throw new Error(
-      'JWT_SECRET is not configured. Add it in Vercel → Project Settings → Environment Variables.',
-    )
-  }
-  return secret
-}
+import { getJwtSecret, missingEnvError } from '@/lib/env'
 
 export type JwtPayload = {
   userId: string
@@ -24,12 +15,16 @@ export type JwtPayload = {
 }
 
 export function signToken(payload: Omit<JwtPayload, 'iat' | 'exp'>): string {
-  return jwt.sign(payload, getJwtSecret(), { expiresIn: '30d' })
+  const secret = getJwtSecret()
+  if (!secret) throw missingEnvError('JWT_SECRET')
+  return jwt.sign(payload, secret, { expiresIn: '30d' })
 }
 
 export function verifyToken(token: string): JwtPayload | null {
+  const secret = getJwtSecret()
+  if (!secret) return null
   try {
-    return jwt.verify(token, getJwtSecret()) as JwtPayload
+    return jwt.verify(token, secret) as JwtPayload
   } catch {
     return null
   }
