@@ -2103,6 +2103,25 @@ select {
   padding: 0 1rem 0 0.5rem;
 }
 
+/* Google Identity Services embedded button */
+.lp__google-gis-wrap {
+  width: 100%;
+  min-height: 48px;
+  display: flex;
+  justify-content: center;
+}
+.lp__google-gis-wrap > div {
+  width: 100% !important;
+}
+.lp__google-gis-wrap iframe {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+.lp__google-gis-wrap--loading {
+  opacity: 0.65;
+  pointer-events: none;
+}
+
 /* Mobile-only stats */
 .lp__mobile-stats {
   display: flex;

@@ -99,12 +99,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  const loginWithGoogle = useCallback(async (idTokenCredential: string): Promise<'ok' | 'invalid' | 'database_unavailable'> => {
-    const payload = parseGoogleIdToken(idTokenCredential)
-    if (!payload?.email) return 'invalid'
-    return loginWithGoogleProfile({ email: payload.email, name: payload.name })
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
   const loginWithGoogleProfile = useCallback(
     async (profile: {
       email: string
@@ -131,6 +125,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     [],
   )
+
+  const loginWithGoogle = useCallback(async (idTokenCredential: string): Promise<'ok' | 'invalid' | 'database_unavailable'> => {
+    const payload = parseGoogleIdToken(idTokenCredential)
+    if (!payload?.email) return 'invalid'
+    return loginWithGoogleProfile({
+      email: payload.email,
+      name: payload.name,
+      picture: payload.picture,
+    })
+  }, [loginWithGoogleProfile])
 
   const logout = useCallback(() => {
     clearToken()

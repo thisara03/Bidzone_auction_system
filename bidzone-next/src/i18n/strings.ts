@@ -98,7 +98,7 @@ export const STRINGS: Record<Locale, Record<string, string>> = {
       'Email or password does not match our records. Create an account if you are new.',
     'login.errGoogle': 'Google sign-in failed. Please try again.',
     'login.errGoogleOrigin':
-      'Google blocked sign-in (origin mismatch). In Google Cloud Console → Credentials → your Web OAuth client, add this exact URL under Authorized JavaScript origins and Authorized redirect URIs, then wait a few minutes: {origin}',
+      'Google blocked sign-in (origin not registered). In Google Cloud Console → Credentials → your Web OAuth client → Authorized JavaScript origins, add this exact URL (no trailing slash), save, wait 5 minutes: {origin}',
     'login.errDatabase':
       'Could not reach the server database. In MongoDB Atlas, open Network Access and add your current IP address (or 0.0.0.0/0 for local dev), then try again.',
     'login.googleNotConfigured':
