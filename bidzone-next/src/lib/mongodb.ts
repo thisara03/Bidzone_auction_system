@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { assertServerEnv, getMongoUri } from "@/lib/env";
+import { assertMongoEnv, getMongoUri } from "@/lib/env";
 
 /**
  * Cached connection to avoid opening multiple connections during
@@ -23,7 +23,7 @@ export async function connectToDatabase(): Promise<typeof mongoose> {
     return cached.conn;
   }
 
-  assertServerEnv();
+  assertMongoEnv();
 
   if (!cached.promise) {
     const uri = getMongoUri()!;

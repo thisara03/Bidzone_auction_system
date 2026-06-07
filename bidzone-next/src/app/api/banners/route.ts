@@ -2,9 +2,16 @@ import { NextResponse } from 'next/server'
 import { connectToDatabase } from '@/lib/mongodb'
 import { PromotionBannerModel } from '@/models/PromotionBanner'
 import { isBannerPubliclyVisible, toPublicBanner } from '@/lib/banners'
+import { getMongoUri } from '@/lib/env'
+
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 /** Public active banners for marketplace ad rails (no auth). */
 export async function GET() {
+  if (!getMongoUri()) {
+    return NextResponse.json({ banners: [] })
+  }
   try {
     await connectToDatabase()
 

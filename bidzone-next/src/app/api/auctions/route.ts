@@ -7,7 +7,11 @@ import { isActiveAdmin } from '@/lib/admin'
 import { toAuctionItem } from '@/lib/auctionMapper'
 import { formatTimeLeftCompact } from '@/lib/auctionTime'
 import { apiErrorResponse } from '@/lib/apiError'
+import { getMongoUri } from '@/lib/env'
 import type { AuctionItem } from '@/data/auctions'
+
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 type CreateBody = Partial<AuctionItem>
 
@@ -44,6 +48,10 @@ function parseCreateBody(body: CreateBody) {
 
 /** Public marketplace — approved listings only */
 export async function GET() {
+  if (!getMongoUri()) {
+    console.error('[/api/auctions GET] MONGODB_URI not set on server — returning empty catalog')
+    return NextResponse.json({ auctions: [] })
+  }
   try {
     await connectToDatabase()
     const auctions = await AuctionModel.find({ moderationStatus: 'approved' }).sort({

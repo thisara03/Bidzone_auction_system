@@ -187,6 +187,7 @@ select {
   z-index: 50;
   transition: background 0.3s ease;
 }
+.site-header--loading { min-height: 72px; }
 
 .site-header__top {
   max-width: 1200px;
@@ -4738,3 +4739,34 @@ select {
   color: #fcd34d;
   font-size: 0.9rem;
 }
+
+.app-error {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: var(--bz-bg, #0f172a);
+}
+.app-error__card {
+  max-width: 420px;
+  padding: 2rem;
+  border-radius: 12px;
+  background: var(--bz-card-bg, #1e293b);
+  border: 1px solid var(--bz-card-border, #334155);
+  text-align: center;
+}
+.app-error__card h1 { margin: 0 0 0.75rem; font-size: 1.35rem; color: var(--bz-text, #f8fafc); }
+.app-error__card p { margin: 0 0 1.25rem; color: var(--bz-text-muted, #94a3b8); line-height: 1.5; }
+.app-error__actions { display: flex; flex-wrap: wrap; gap: 0.75rem; justify-content: center; }
+.app-error__btn {
+  padding: 0.65rem 1.25rem;
+  border-radius: 8px;
+  border: none;
+  background: var(--bz-gold, #d97706);
+  color: #111;
+  font-weight: 700;
+  cursor: pointer;
+}
+.app-error__link { color: var(--bz-gold-hover, #f59e0b); font-weight: 600; text-decoration: none; }
+.app-error__link:hover { text-decoration: underline; }

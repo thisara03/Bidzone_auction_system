@@ -1,10 +1,10 @@
 'use client'
-import { useEffect } from 'react'
+import { Suspense, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
 import { HomePage } from '@/components/layout/HomePage'
 
-export default function HomePageRoute() {
+function HomePageRouteInner() {
   const { isAuthenticated } = useAuth()
   const router = useRouter()
 
@@ -17,4 +17,12 @@ export default function HomePageRoute() {
   if (!isAuthenticated) return null
 
   return <HomePage />
+}
+
+export default function HomePageRoute() {
+  return (
+    <Suspense fallback={null}>
+      <HomePageRouteInner />
+    </Suspense>
+  )
 }

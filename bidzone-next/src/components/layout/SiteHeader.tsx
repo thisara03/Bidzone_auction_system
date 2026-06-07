@@ -1,5 +1,5 @@
 'use client'
-import { type FormEvent, useEffect, useRef, useState } from 'react'
+import { type FormEvent, Suspense, useEffect, useRef, useState } from 'react'
 import { Bell, Heart, Search, ShoppingCart, User, Gavel } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
@@ -45,7 +45,7 @@ function initials(name: string) {
   return name.slice(0, 2).toUpperCase() || 'BZ'
 }
 
-export function SiteHeader() {
+function SiteHeaderInner() {
   const { isAuthenticated, canAccessSellerTools, user, logout } = useAuth()
   const { t } = useI18n()
   const { count: wishlistCount } = useWishlist()
@@ -265,5 +265,17 @@ export function SiteHeader() {
       <WishlistPanel     open={sheet === 'wishlist'}      onClose={() => setSheet('none')} />
       <CartPanel         open={sheet === 'cart'}          onClose={() => setSheet('none')} />
     </>
+  )
+}
+
+function SiteHeaderFallback() {
+  return <header className="site-header site-header--loading" aria-busy="true" />
+}
+
+export function SiteHeader() {
+  return (
+    <Suspense fallback={<SiteHeaderFallback />}>
+      <SiteHeaderInner />
+    </Suspense>
   )
 }

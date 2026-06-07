@@ -121,24 +121,44 @@ export function invalidEnvError(name: string, detail: string): Error {
   return new Error(`INVALID_ENV:${name} — ${detail}`)
 }
 
-/** Assert env is valid before DB/auth use. Throws typed errors for API handlers. */
+function throwForIssue(issue: EnvValidationIssue): never {
+  if (issue.code === 'missing') {
+    throw missingEnvError(issue.variable)
+  }
+  if (issue.code === 'invalid_mongodb_uri') {
+    throw invalidEnvError(
+      'MONGODB_URI',
+      'Must be a valid mongodb:// or mongodb+srv:// connection string with real credentials.',
+    )
+  }
+  throw invalidEnvError(
+    'JWT_SECRET',
+    `Use at least ${MIN_JWT_SECRET_LENGTH} random characters (e.g. openssl rand -base64 48).`,
+  )
+}
+
+/** MongoDB routes only — does not require JWT_SECRET. */
+export function assertMongoEnv(): void {
+  const mongoUri = getMongoUri()
+  if (!mongoUri) throw missingEnvError('MONGODB_URI')
+  const mongoIssue = validateMongoUri(mongoUri)
+  if (mongoIssue) throwForIssue(mongoIssue)
+}
+
+/** Auth/token routes only — does not require MONGODB_URI. */
+export function assertJwtEnv(): void {
+  const jwtSecret = getJwtSecret()
+  if (!jwtSecret) throw missingEnvError('JWT_SECRET')
+  if (isProduction()) {
+    const jwtIssue = validateJwtSecret(jwtSecret)
+    if (jwtIssue) throwForIssue(jwtIssue)
+  }
+}
+
+/** Assert all required server env (DB + auth). */
 export function assertServerEnv(): void {
   const issues = validateServerEnv()
   for (const issue of issues) {
-    if (issue.code === 'missing') {
-      throw missingEnvError(issue.variable)
-    }
-    if (issue.code === 'invalid_mongodb_uri') {
-      throw invalidEnvError(
-        'MONGODB_URI',
-        'Must be a valid mongodb:// or mongodb+srv:// connection string with real credentials.',
-      )
-    }
-    if (issue.code === 'weak_jwt_secret') {
-      throw invalidEnvError(
-        'JWT_SECRET',
-        `Use at least ${MIN_JWT_SECRET_LENGTH} random characters (e.g. openssl rand -base64 48).`,
-      )
-    }
+    throwForIssue(issue)
   }
 }
