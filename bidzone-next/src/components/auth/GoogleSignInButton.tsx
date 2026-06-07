@@ -78,8 +78,15 @@ function GoogleSignInButtonInner() {
         setLoading(false)
       }
     },
-    onError: () => {
-      setError(t('login.errGoogle'))
+    onError: (err) => {
+      const detail = typeof err === 'object' && err && 'error' in err ? String(err.error) : ''
+      if (detail.includes('origin') || detail.includes('redirect_uri')) {
+        const origin =
+          typeof window !== 'undefined' ? window.location.origin : 'your site URL'
+        setError(t('login.errGoogleOrigin').replace('{origin}', origin))
+      } else {
+        setError(t('login.errGoogle'))
+      }
       setLoading(false)
     },
   })
